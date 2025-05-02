@@ -1,12 +1,47 @@
 const express = require('express');
 const cors = require('cors');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config();
 
-
+const uri = "mongodb+srv://monjurul190629:asdflkjhg@pro-coder.o7jaztj.mongodb.net/?retryWrites=true&w=majority&appName=pro-coder";
 
 // Initialize
 const app = express();
 const port = process.env.PORT || 5000;
+
+
+
+
+
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    await client.connect();
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    //await client.close();
+  }
+}
+run().catch(console.dir);
+
+const myDB = client.db("Orders");
+const Ordercollection = myDB.collection("orderCollection");
+
+
+
 
 // For ssl commerce
 
@@ -50,7 +85,7 @@ app.post('/order', (req, res) => {
         total_amount: 100,
         currency: order.currency,
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: 'http://localhost:3030/success',
+        success_url: `http://localhost:5000/payment/success/${tran_id}`,
         fail_url: 'http://localhost:3030/fail',
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
@@ -86,11 +121,38 @@ app.post('/order', (req, res) => {
         let GatewayPageURL = apiResponse.GatewayPageURL
         res.send({url : GatewayPageURL})
         console.log('Redirecting to: ', GatewayPageURL)
+
+
+        const finalOrder = {
+            order, paidStatus : false, tranjectionId : tran_id
+        }
+
+        const result = Ordercollection.insertOne(finalOrder);
     });
+
+    
 })
 
 
+app.post("/payment/success/:tranId", async(req, res) => {
+    console.log(req.params.tranId);
 
+    const result = await Ordercollection.updateOne(
+        {
+            tranjectionId : req.params.tranId
+        },
+        {
+            $set:{
+                paidStatus : true
+            }
+        }
+    )
+
+    if(result.modifiedCount > 0){
+        res.redirect('http://localhost:3000/payMentSuccess')
+    }
+
+})
 
 
 
