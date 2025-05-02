@@ -1,0 +1,26 @@
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+
+
+
+// Initialize
+const app = express();
+const port = process.env.PORT || 5000;
+
+
+// main middleware
+
+app.use(express.json());
+
+app.use(cors());
+
+
+
+app.get('/', (req, res) => {
+    res.send('everything is ok');
+})
+
+app.listen(port, () => {
+    console.log('Server is running')
+})
